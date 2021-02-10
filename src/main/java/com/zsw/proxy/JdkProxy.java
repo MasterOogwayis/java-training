@@ -2,8 +2,8 @@ package com.zsw.proxy;
 
 import lombok.extern.slf4j.Slf4j;
 
-import java.lang.invoke.MethodHandles.Lookup;
-import java.lang.reflect.Field;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -15,6 +15,8 @@ import java.lang.reflect.Proxy;
 public class JdkProxy implements InvocationHandler {
 
     private Object target;
+
+    private MethodHandle methodHandle;
 
     @SuppressWarnings("unchecked")
     public <T> T getInstance(T target) {
@@ -31,14 +33,12 @@ public class JdkProxy implements InvocationHandler {
         log.info("before: {}", method.getName());
         Object invoke;
         if (method.isDefault()) {
-            Field field = Lookup.class.getDeclaredField("IMPL_LOOKUP");
-            field.setAccessible(true);
-            Lookup lookup = (Lookup) field.get(null);
-            // 15 = Lookup#ALL_MODES
-            invoke = lookup
-                    .unreflectSpecial(method, method.getDeclaringClass())
-                    .bindTo(proxy)
-                    .invokeWithArguments(args);
+            if (this.methodHandle == null) {
+                this.methodHandle = MethodHandles.lookup()
+                        .unreflectSpecial(method, method.getDeclaringClass())
+                        .bindTo(proxy);
+            }
+            invoke = this.methodHandle.invokeWithArguments(args);
         } else {
             invoke = method.invoke(target, args);
         }
