@@ -7,6 +7,8 @@ import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author ZhangShaowei on 2021/2/10 11:32
@@ -16,7 +18,7 @@ public class JdkProxy implements InvocationHandler {
 
     private Object target;
 
-    private MethodHandle methodHandle;
+    private final Map<Method, MethodHandle> dispatcher = new ConcurrentHashMap<>();
 
     @SuppressWarnings("unchecked")
     public <T> T getInstance(T target) {
@@ -33,12 +35,15 @@ public class JdkProxy implements InvocationHandler {
         log.info("before: {}", method.getName());
         Object invoke;
         if (method.isDefault()) {
-            if (this.methodHandle == null) {
-                this.methodHandle = MethodHandles.lookup()
-                        .unreflectSpecial(method, method.getDeclaringClass())
-                        .bindTo(proxy);
-            }
-            invoke = this.methodHandle.invokeWithArguments(args);
+            invoke = this.dispatcher.computeIfAbsent(method, m -> {
+                try {
+                    return MethodHandles.lookup()
+                            .unreflectSpecial(method, method.getDeclaringClass())
+                            .bindTo(proxy);
+                } catch (IllegalAccessException e) {
+                    throw new IllegalStateException(e);
+                }
+            }).invokeWithArguments(args);
         } else {
             invoke = method.invoke(target, args);
         }
