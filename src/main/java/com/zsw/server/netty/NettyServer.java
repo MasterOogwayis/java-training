@@ -26,6 +26,11 @@ public class NettyServer {
 
     private final int port;
 
+    public static void main(String[] args) {
+        new NettyServer(8081).start();
+    }
+
+
     public void start() {
         EventLoopGroup bossGroup = new NioEventLoopGroup(1);
         EventLoopGroup workerGroup = new NioEventLoopGroup();

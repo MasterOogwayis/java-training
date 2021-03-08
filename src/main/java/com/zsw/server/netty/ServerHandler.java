@@ -31,6 +31,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, String msg) throws Exception {
+        log.info("Received message from client: {}", msg);
         String response = "";
         boolean close = false;
         if (StringUtil.isNullOrEmpty(msg)) {
